@@ -107,11 +107,27 @@ const Approvals: React.FC = () => {
       const res = await approvalApi.signApproval(data.approvalId, data.stepId, { comment: data.comment, signature: data.signature });
       return res.data;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['approvals', 'approvalDetail'] });
-      message.success('审批签字成功');
+    onSuccess: (result: any) => {
+      const updatedApproval = result?.data;
+      if (updatedApproval) {
+        queryClient.setQueryData(['approvals'], (oldData: any) => {
+          if (!oldData) return oldData;
+          return oldData.map((a: Approval) => a.id === updatedApproval.id ? { ...a, ...updatedApproval } : a);
+        });
+        queryClient.setQueryData(['approvalDetail', updatedApproval.id], updatedApproval);
+        if (selectedApproval?.id === updatedApproval.id) {
+          setSelectedApproval({ ...selectedApproval, ...updatedApproval });
+        }
+      }
+      queryClient.invalidateQueries({ queryKey: ['approvals', 'approvalDetail', 'drawings'] });
+      if (updatedApproval?.status === 'approved') {
+        message.success('全部审批通过！图纸状态已更新为可下发');
+      } else {
+        message.success('审批签字成功，已流转到下一步');
+      }
       setShowSignModal(false);
       signForm.resetFields();
+      setCurrentStep(null);
     },
     onError: (error: any) => {
       message.error(error.response?.data?.error || '签字失败');
@@ -123,8 +139,19 @@ const Approvals: React.FC = () => {
       const res = await approvalApi.rejectApproval(data.id, { comment: data.comment });
       return res.data;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['approvals', 'approvalDetail'] });
+    onSuccess: (result: any) => {
+      const updatedApproval = result?.data;
+      if (updatedApproval) {
+        queryClient.setQueryData(['approvals'], (oldData: any) => {
+          if (!oldData) return oldData;
+          return oldData.map((a: Approval) => a.id === updatedApproval.id ? { ...a, ...updatedApproval } : a);
+        });
+        queryClient.setQueryData(['approvalDetail', updatedApproval.id], updatedApproval);
+        if (selectedApproval?.id === updatedApproval.id) {
+          setSelectedApproval({ ...selectedApproval, ...updatedApproval });
+        }
+      }
+      queryClient.invalidateQueries({ queryKey: ['approvals', 'approvalDetail', 'drawings'] });
       message.success('审批已驳回');
       setShowRejectModal(false);
       rejectForm.resetFields();
@@ -408,16 +435,32 @@ const Approvals: React.FC = () => {
               <h4 className="font-medium mb-4">审批流程</h4>
               <Steps
                 direction="vertical"
-                current={currentApproval.steps?.filter((s) => s.status !== 'pending').length || 0}
+                current={currentApproval.steps?.filter((s) => s.status === 'approved').length || 0}
                 status={currentApproval.status === 'rejected' ? 'error' : 'process'}
                 items={currentApproval.steps?.map((step: ApprovalStep) => {
-                  const isMyTurn = step.status === 'pending' && user?.id === (step.approverId || step.reviewerId);
-                  const canSign = isMyTurn && currentApproval.status === 'pending' && 
-                    currentApproval.steps?.every((s: ApprovalStep) => s.order >= step.order || s.status !== 'pending');
+                  const approverName = step.approver?.name || step.reviewer?.name || '负责人';
+                  const stepApproverId = step.approverId || step.reviewerId;
+                  const isMyTurn = user?.id === stepApproverId;
+                  const prevSteps = currentApproval.steps?.filter((s: ApprovalStep) => (s.order || s.stepNumber) < (step.order || step.stepNumber)) || [];
+                  const allPrevApproved = prevSteps.every((s: ApprovalStep) => s.status === 'approved');
+                  const isPending = step.status === 'pending';
+                  const canSign = isPending && isMyTurn && allPrevApproved && 
+                    (currentApproval.status === 'pending' || currentApproval.status === 'reviewing');
+                  const showWaitingTip = isPending && (!allPrevApproved || !isMyTurn) && 
+                    (currentApproval.status === 'pending' || currentApproval.status === 'reviewing');
+                  let stepStatusIcon: 'finish' | 'process' | 'error' | 'wait' = 'wait';
+                  if (step.status === 'approved') stepStatusIcon = 'finish';
+                  else if (step.status === 'rejected') stepStatusIcon = 'error';
+                  else if (canSign) stepStatusIcon = 'process';
                   return {
                     title: (
-                      <div className="flex items-center justify-between">
-                        <span className="font-medium">{step.approver?.name || step.reviewer?.name || '负责人'}</span>
+                      <div className="flex items-center justify-between flex-wrap gap-2">
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium">{approverName}</span>
+                          <Tag color="purple" className="!mb-0">
+                            第 {step.order || step.stepNumber} 步
+                          </Tag>
+                        </div>
                         {canSign && (
                           <Space>
                             <Button
@@ -438,14 +481,27 @@ const Approvals: React.FC = () => {
                             </Button>
                           </Space>
                         )}
+                        {showWaitingTip && !isMyTurn && (
+                          <Tag icon={<ClockCircleOutlined />} color="default">
+                            等待中
+                          </Tag>
+                        )}
+                        {showWaitingTip && isMyTurn && !allPrevApproved && (
+                          <Tag icon={<ClockCircleOutlined />} color="orange">
+                            前置步骤未完成
+                          </Tag>
+                        )}
                       </div>
                     ),
                     description: (
                       <div className="mt-2">
-                        <p className="text-xs text-slate-500">{stepStatusText[step.status]}</p>
+                        <p className="text-xs text-slate-500 mb-1">
+                          状态：{stepStatusText[step.status]}
+                          {canSign && <span className="text-blue-600 font-medium ml-2">→ 轮到您审批</span>}
+                        </p>
                         {step.signedBy && (
                           <p className="text-xs text-slate-600 mt-1">
-                            签字人：{step.signedBy || step.approver?.name || step.reviewer?.name || ''} · {step.signedAt}
+                            签字人：{step.signedBy || approverName} · {step.signedAt}
                           </p>
                         )}
                         {step.comment && (
@@ -455,7 +511,7 @@ const Approvals: React.FC = () => {
                         )}
                       </div>
                     ),
-                    status: step.status === 'approved' ? 'finish' : step.status === 'rejected' ? 'error' : 'process',
+                    status: stepStatusIcon,
                   };
                 })}
               />

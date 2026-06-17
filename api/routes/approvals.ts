@@ -186,21 +186,23 @@ router.post('/:id/steps/:stepId/sign', authenticateToken, requireRole('admin', '
 
     let updatedApproval;
     if (allApproved) {
-      updatedApproval = db.updateApproval(id, {
+      db.updateApproval(id, {
         status: 'approved',
         currentStep: steps.length,
       });
       db.updateDrawing(approval.drawingId, { status: 'issued' });
     } else {
-      updatedApproval = db.updateApproval(id, {
+      db.updateApproval(id, {
         status: 'reviewing',
         currentStep: currentStep.stepNumber,
       });
     }
     
+    const completeApproval = db.getApprovalById(id);
+    
     res.json({
       success: true,
-      data: { step: updatedStep, approval: updatedApproval },
+      data: completeApproval,
       message: '审批签字成功',
     });
   } catch (error) {
@@ -241,9 +243,11 @@ router.post('/:id/reject', authenticateToken, requireRole('admin', 'project_mana
     
     db.updateDrawing(approval.drawingId, { status: 'draft' });
     
+    const completeApproval = db.getApprovalById(id);
+    
     res.json({
       success: true,
-      data: updated,
+      data: completeApproval,
       message: '审批已驳回',
     });
   } catch (error) {

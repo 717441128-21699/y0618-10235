@@ -39,6 +39,7 @@ const ECNs: React.FC = () => {
   const [modalVisible, setModalVisible] = useState(false);
   const [drawerVisible, setDrawerVisible] = useState(false);
   const [selectedECN, setSelectedECN] = useState<ECN | null>(null);
+  const [submitMode, setSubmitMode] = useState<'draft' | 'issue'>('draft');
   const [form] = Form.useForm();
   const queryClient = useQueryClient();
 
@@ -81,9 +82,22 @@ const ECNs: React.FC = () => {
       const res = await ecnApi.createECN(data);
       return res.data;
     },
-    onSuccess: () => {
+    onSuccess: async (result: any) => {
       queryClient.invalidateQueries({ queryKey: ['ecns'] });
-      message.success('ECN创建成功');
+      message.success(submitMode === 'issue' ? 'ECN创建并发布成功' : 'ECN创建成功');
+      
+      if (submitMode === 'issue' && result?.data?.id) {
+        try {
+          const issueRes = await ecnApi.issueECN(result.data.id);
+          if (issueRes.data?.success) {
+            queryClient.invalidateQueries({ queryKey: ['ecns', 'ecnDetail'] });
+            message.success('ECN已发布');
+          }
+        } catch (e: any) {
+          message.error(e.response?.data?.error || '发布失败，但ECN草稿已创建');
+        }
+      }
+      
       setModalVisible(false);
       form.resetFields();
     },
@@ -97,8 +111,15 @@ const ECNs: React.FC = () => {
       const res = await ecnApi.issueECN(id);
       return res.data;
     },
-    onSuccess: () => {
+    onSuccess: (result: any) => {
+      queryClient.setQueryData(['ecns'], (oldData: any) => {
+        if (!oldData) return oldData;
+        return oldData.map((e: ECN) => e.id === result?.data?.id ? { ...e, ...result.data } : e);
+      });
       queryClient.invalidateQueries({ queryKey: ['ecns', 'ecnDetail'] });
+      if (selectedECN && result?.data) {
+        setSelectedECN({ ...selectedECN, ...result.data });
+      }
       message.success('ECN已发布');
     },
     onError: (error: any) => {
@@ -111,8 +132,15 @@ const ECNs: React.FC = () => {
       const res = await ecnApi.acknowledgeECN(data.ecnId, data.notificationId);
       return res.data;
     },
-    onSuccess: () => {
+    onSuccess: (result: any) => {
+      queryClient.setQueryData(['ecns'], (oldData: any) => {
+        if (!oldData) return oldData;
+        return oldData.map((e: ECN) => e.id === result?.data?.id ? { ...e, ...result.data } : e);
+      });
       queryClient.invalidateQueries({ queryKey: ['ecns', 'ecnDetail'] });
+      if (selectedECN && result?.data) {
+        setSelectedECN({ ...selectedECN, ...result.data });
+      }
       message.success('已确认回执');
     },
     onError: (error: any) => {
@@ -122,13 +150,24 @@ const ECNs: React.FC = () => {
 
   const handleCreate = () => {
     form.resetFields();
+    setSubmitMode('draft');
     setModalVisible(true);
   };
 
   const handleSubmit = async () => {
     try {
       const values = await form.validateFields();
-      createMutation.mutate(values);
+      createMutation.mutate({ ...values, reason: values.reason || values.description });
+    } catch (e) {
+      console.error('Validation failed:', e);
+    }
+  };
+
+  const handleCreateAndIssue = async () => {
+    setSubmitMode('issue');
+    try {
+      const values = await form.validateFields();
+      createMutation.mutate({ ...values, reason: values.reason || values.description });
     } catch (e) {
       console.error('Validation failed:', e);
     }
@@ -161,9 +200,42 @@ const ECNs: React.FC = () => {
 
   const currentECN = ecnDetail || selectedECN;
   const affectedDrawings = currentECN?.drawings?.map((d: any) => {
-    const fullDrawing = drawings?.find((dwg: Drawing) => dwg.id === d.id);
-    return fullDrawing || d;
+    const embeddedDrawing = d.drawing;
+    const fullDrawing = drawings?.find((dwg: Drawing) => dwg.id === d.drawingId);
+    const baseDrawing = fullDrawing || embeddedDrawing || {};
+    const baseVersion = d.version || baseDrawing.latestVersion || {};
+    return {
+      ...baseDrawing,
+      ...embeddedDrawing,
+      id: d.drawingId,
+      name: baseDrawing.name || embeddedDrawing?.name || '未知图纸',
+      drawingNumber: baseDrawing.drawingNumber || embeddedDrawing?.drawingNumber || '-',
+      status: baseDrawing.status || embeddedDrawing?.status || 'draft',
+      latestVersion: baseVersion,
+    };
   }) || [];
+
+  const drawingStatusText: Record<string, string> = {
+    draft: '草稿',
+    pending_review: '待审核',
+    reviewing: '审核中',
+    in_approval: '审批中',
+    approved: '已批准',
+    rejected: '已驳回',
+    issued: '可下发',
+    released: '已发布',
+  };
+
+  const drawingStatusColor: Record<string, string> = {
+    draft: 'default',
+    pending_review: 'gold',
+    reviewing: 'blue',
+    in_approval: 'purple',
+    approved: 'green',
+    rejected: 'red',
+    issued: 'cyan',
+    released: 'green',
+  };
 
   const columns = [
     {
@@ -268,10 +340,28 @@ const ECNs: React.FC = () => {
       <Modal
         title="新建变更通知(ECN)"
         open={modalVisible}
-        onOk={handleSubmit}
         onCancel={() => setModalVisible(false)}
         confirmLoading={createMutation.isPending}
-        width={600}
+        width={650}
+        footer={
+          <div className="flex justify-end gap-2">
+            <Button onClick={() => setModalVisible(false)}>取消</Button>
+            <Button
+              onClick={handleSubmit}
+              loading={createMutation.isPending}
+            >
+              保存草稿
+            </Button>
+            <Button
+              type="primary"
+              icon={<SendOutlined />}
+              onClick={handleCreateAndIssue}
+              loading={createMutation.isPending}
+            >
+              创建并发布
+            </Button>
+          </div>
+        }
       >
         <Form form={form} layout="vertical">
           <Form.Item
@@ -279,14 +369,21 @@ const ECNs: React.FC = () => {
             label="ECN标题"
             rules={[{ required: true, message: '请输入标题' }]}
           >
-            <Input placeholder="请输入ECN标题" />
+            <Input placeholder="例如：电机功率参数调整" />
+          </Form.Item>
+          <Form.Item
+            name="reason"
+            label="变更原因"
+            rules={[{ required: true, message: '请输入变更原因' }]}
+          >
+            <Input placeholder="例如：生产线产能升级需求" />
           </Form.Item>
           <Form.Item
             name="description"
             label="变更说明"
             rules={[{ required: true, message: '请输入变更说明' }]}
           >
-            <TextArea rows={4} placeholder="请详细描述变更内容..." />
+            <TextArea rows={4} placeholder="请详细描述变更内容、影响范围、执行步骤..." />
           </Form.Item>
           <Form.Item
             name="drawingIds"
@@ -297,6 +394,7 @@ const ECNs: React.FC = () => {
               mode="multiple"
               placeholder="请选择受影响的图纸"
               optionFilterProp="children"
+              showSearch
             >
               {drawings?.map((d: Drawing) => (
                 <Option key={d.id} value={d.id}>{d.name} ({d.drawingNumber})</Option>
@@ -312,6 +410,7 @@ const ECNs: React.FC = () => {
               mode="multiple"
               placeholder="请选择需要通知的部门"
               optionFilterProp="children"
+              showSearch
             >
               {departments?.map((d: Department) => (
                 <Option key={d.id} value={d.id}>{d.name}</Option>
@@ -346,25 +445,38 @@ const ECNs: React.FC = () => {
 
             <div>
               <h4 className="font-medium mb-3">关联图纸</h4>
-              <List
-                dataSource={affectedDrawings}
-                renderItem={(drawing: Drawing) => (
-                  <List.Item className="px-0 border-b border-slate-100 py-3">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 bg-blue-50 rounded flex items-center justify-center">
-                        <FileTextOutlined className="text-blue-600 text-sm" />
+              {affectedDrawings.length === 0 ? (
+                <div className="text-center py-8 text-slate-400">暂无关联图纸</div>
+              ) : (
+                <List
+                  dataSource={affectedDrawings}
+                  renderItem={(drawing: any) => (
+                    <List.Item className="px-0 border-b border-slate-100 py-3">
+                      <div className="flex items-center gap-3 w-full">
+                        <div className="w-8 h-8 bg-blue-50 rounded flex items-center justify-center flex-shrink-0">
+                          <FileTextOutlined className="text-blue-600 text-sm" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-sm text-slate-800 truncate">
+                            {drawing.name || '未知图纸'}
+                          </p>
+                          <p className="text-xs text-slate-500">
+                            编号: {drawing.drawingNumber || '-'}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          <Tag color={drawingStatusColor[drawing.status] || 'default'}>
+                            {drawingStatusText[drawing.status] || drawing.status || '未知'}
+                          </Tag>
+                          <Tag color="blue">
+                            {drawing.latestVersion?.version || drawing.version?.version || 'v1.0'}
+                          </Tag>
+                        </div>
                       </div>
-                      <div className="flex-1">
-                        <p className="font-medium text-sm">{drawing.name}</p>
-                        <p className="text-xs text-slate-500">{drawing.drawingNumber}</p>
-                      </div>
-                      <Tag color={drawing.status === 'approved' ? 'green' : 'orange'}>
-                        {drawing.latestVersion?.version || '-'}
-                      </Tag>
-                    </div>
-                  </List.Item>
-                )}
-              />
+                    </List.Item>
+                  )}
+                />
+              )}
             </div>
 
             <div>
