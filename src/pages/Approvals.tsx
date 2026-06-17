@@ -108,20 +108,24 @@ const Approvals: React.FC = () => {
       return res.data;
     },
     onSuccess: (result: any) => {
-      const updatedApproval = result?.data;
-      if (updatedApproval) {
+      const updatedApproval = result?.data || result;
+      const approvalId = updatedApproval?.id;
+      if (approvalId) {
         queryClient.setQueryData(['approvals'], (oldData: any) => {
           if (!oldData) return oldData;
-          return oldData.map((a: Approval) => a.id === updatedApproval.id ? { ...a, ...updatedApproval } : a);
+          return oldData.map((a: Approval) => a.id === approvalId ? { ...a, ...updatedApproval } : a);
         });
-        queryClient.setQueryData(['approvalDetail', updatedApproval.id], updatedApproval);
-        if (selectedApproval?.id === updatedApproval.id) {
+        queryClient.setQueryData(['approvalDetail', approvalId], (oldData: any) => {
+          if (!oldData) return updatedApproval;
+          return oldData?.data ? { ...oldData, data: { ...oldData.data, ...updatedApproval } } : updatedApproval;
+        });
+        if (selectedApproval?.id === approvalId) {
           setSelectedApproval({ ...selectedApproval, ...updatedApproval });
         }
       }
       queryClient.invalidateQueries({ queryKey: ['approvals', 'approvalDetail', 'drawings'] });
       if (updatedApproval?.status === 'approved') {
-        message.success('全部审批通过！图纸状态已更新为可下发');
+        message.success('全部审批通过！图纸状态已更新为可下发', 3);
       } else {
         message.success('审批签字成功，已流转到下一步');
       }
@@ -140,14 +144,18 @@ const Approvals: React.FC = () => {
       return res.data;
     },
     onSuccess: (result: any) => {
-      const updatedApproval = result?.data;
-      if (updatedApproval) {
+      const updatedApproval = result?.data || result;
+      const approvalId = updatedApproval?.id;
+      if (approvalId) {
         queryClient.setQueryData(['approvals'], (oldData: any) => {
           if (!oldData) return oldData;
-          return oldData.map((a: Approval) => a.id === updatedApproval.id ? { ...a, ...updatedApproval } : a);
+          return oldData.map((a: Approval) => a.id === approvalId ? { ...a, ...updatedApproval } : a);
         });
-        queryClient.setQueryData(['approvalDetail', updatedApproval.id], updatedApproval);
-        if (selectedApproval?.id === updatedApproval.id) {
+        queryClient.setQueryData(['approvalDetail', approvalId], (oldData: any) => {
+          if (!oldData) return updatedApproval;
+          return oldData?.data ? { ...oldData, data: { ...oldData.data, ...updatedApproval } } : updatedApproval;
+        });
+        if (selectedApproval?.id === approvalId) {
           setSelectedApproval({ ...selectedApproval, ...updatedApproval });
         }
       }

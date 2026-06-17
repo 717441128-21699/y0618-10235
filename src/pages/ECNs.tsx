@@ -112,13 +112,21 @@ const ECNs: React.FC = () => {
       return res.data;
     },
     onSuccess: (result: any) => {
+      const updatedData = result?.data || result;
+      const ecnId = updatedData?.id;
       queryClient.setQueryData(['ecns'], (oldData: any) => {
         if (!oldData) return oldData;
-        return oldData.map((e: ECN) => e.id === result?.data?.id ? { ...e, ...result.data } : e);
+        return oldData.map((e: ECN) => e.id === ecnId ? { ...e, ...updatedData } : e);
       });
+      if (ecnId) {
+        queryClient.setQueryData(['ecnDetail', ecnId], (oldData: any) => {
+          if (!oldData) return updatedData;
+          return oldData?.data ? { ...oldData, data: { ...oldData.data, ...updatedData } } : updatedData;
+        });
+      }
       queryClient.invalidateQueries({ queryKey: ['ecns', 'ecnDetail'] });
-      if (selectedECN && result?.data) {
-        setSelectedECN({ ...selectedECN, ...result.data });
+      if (selectedECN && updatedData) {
+        setSelectedECN({ ...selectedECN, ...updatedData });
       }
       message.success('ECN已发布');
     },
@@ -133,13 +141,21 @@ const ECNs: React.FC = () => {
       return res.data;
     },
     onSuccess: (result: any) => {
+      const updatedData = result?.data || result;
+      const ecnId = updatedData?.id;
       queryClient.setQueryData(['ecns'], (oldData: any) => {
         if (!oldData) return oldData;
-        return oldData.map((e: ECN) => e.id === result?.data?.id ? { ...e, ...result.data } : e);
+        return oldData.map((e: ECN) => e.id === ecnId ? { ...e, ...updatedData } : e);
       });
+      if (ecnId) {
+        queryClient.setQueryData(['ecnDetail', ecnId], (oldData: any) => {
+          if (!oldData) return updatedData;
+          return oldData?.data ? { ...oldData, data: { ...oldData.data, ...updatedData } } : updatedData;
+        });
+      }
       queryClient.invalidateQueries({ queryKey: ['ecns', 'ecnDetail'] });
-      if (selectedECN && result?.data) {
-        setSelectedECN({ ...selectedECN, ...result.data });
+      if (selectedECN && updatedData) {
+        setSelectedECN({ ...selectedECN, ...updatedData });
       }
       message.success('已确认回执');
     },
