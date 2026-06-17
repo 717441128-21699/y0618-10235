@@ -151,8 +151,8 @@ const AccessLogs: React.FC = () => {
       dataIndex: 'userAgent',
       key: 'userAgent',
       render: (ua: string) => (
-        <span className="text-xs text-slate-500" title={ua}>
-          {ua?.substring(0, 60)}...
+        <span className="text-xs text-slate-500" title={ua || '未知设备'}>
+          {(ua && ua.length > 60) ? ua.substring(0, 60) + '...' : (ua || '未知设备')}
         </span>
       ),
     },

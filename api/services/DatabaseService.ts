@@ -332,7 +332,16 @@ class DatabaseService {
     return this.create(this.ecnNotifications, data);
   }
 
-  getECNs(): ECN[] { return this.ecns; }
+  getECNs(): ECN[] {
+    return this.ecns
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      .map(e => ({
+        ...e,
+        createdByUser: this.getUserById(e.createdBy),
+        drawings: this.getECNDrawingsByECN(e.id),
+        notifications: this.getECNNotificationsByECN(e.id),
+      }));
+  }
   getECNById(id: string): ECN | undefined {
     const ecn = this.findById(this.ecns, id);
     if (ecn) {

@@ -260,7 +260,7 @@ router.get('/versions/:id/annotations', authenticateToken, async (req: AuthReque
 router.post('/versions/:id/annotations', authenticateToken, requireRole('admin', 'project_manager', 'designer', 'reviewer'), async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
-    const { type, x, y, width, height, radius, color, comment } = req.body;
+    const { type, x, y, width, height, radius, color, comment, content } = req.body;
     
     const annotation = db.createAnnotation({
       versionId: id,
@@ -271,14 +271,18 @@ router.post('/versions/:id/annotations', authenticateToken, requireRole('admin',
       height,
       radius,
       color: color || '#EF4444',
-      comment,
+      comment: comment || content || '',
+      content: content || comment || '',
       status: 'open',
       createdBy: req.user!.id,
+      author: req.user!.name || req.user!.username,
     });
+    
+    const completeAnnotation = db.getAnnotationById(annotation.id);
     
     res.status(201).json({
       success: true,
-      data: annotation,
+      data: completeAnnotation,
       message: '标注添加成功',
     });
   } catch (error) {

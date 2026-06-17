@@ -366,10 +366,10 @@ const ExternalLinks: React.FC = () => {
                           {log.externalViewer || '外部用户'}
                         </p>
                         <p className="text-xs text-slate-500">
-                          IP: {log.ipAddress} · {log.userAgent?.substring(0, 50)}...
+                          IP: {log.ipAddress || '未知'} · {(log.userAgent && log.userAgent.length > 50) ? log.userAgent.substring(0, 50) + '...' : (log.userAgent || '未知设备')}
                         </p>
                       </div>
-                      <span className="text-xs text-slate-400">{log.accessedAt}</span>
+                      <span className="text-xs text-slate-400">{log.accessedAt || '-'}</span>
                     </div>
                   </List.Item>
                 )}

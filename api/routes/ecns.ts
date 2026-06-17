@@ -104,9 +104,11 @@ router.post('/', authenticateToken, requireRole('admin', 'project_manager'), asy
       });
     }
     
+    const completeECN = db.getECNById(ecn.id);
+    
     res.status(201).json({
       success: true,
-      data: ecn,
+      data: completeECN,
       message: 'ECN创建成功',
     });
   } catch (error) {
@@ -130,9 +132,11 @@ router.post('/:id/issue', authenticateToken, requireRole('admin', 'project_manag
       });
     }
     
+    const completeECN = db.getECNById(id);
+    
     res.json({
       success: true,
-      data: updated,
+      data: completeECN,
       message: 'ECN已发布，通知已发送',
     });
   } catch (error) {
@@ -156,7 +160,7 @@ router.post('/:id/acknowledge', authenticateToken, async (req: AuthRequest, res:
       });
     }
     
-    const updatedNotif = db.updateECNNotification(notificationId, {
+    db.updateECNNotification(notificationId, {
       acknowledged: true,
       acknowledgedBy: req.user!.id,
       acknowledgedAt: new Date().toISOString(),
@@ -169,9 +173,11 @@ router.post('/:id/acknowledge', authenticateToken, async (req: AuthRequest, res:
       db.updateECN(id, { status: 'acknowledged' });
     }
     
+    const completeECN = db.getECNById(id);
+    
     res.json({
       success: true,
-      data: updatedNotif,
+      data: completeECN,
       message: '已确认收到ECN通知',
     });
   } catch (error) {

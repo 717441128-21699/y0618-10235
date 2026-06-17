@@ -110,6 +110,37 @@ router.put('/links/:id', authenticateToken, requireRole('admin', 'project_manage
   }
 });
 
+router.get('/audit/access-logs', authenticateToken, requireRole('admin'), async (req: AuthRequest, res: Response) => {
+  try {
+    const { drawingId, userId, linkId } = req.query;
+    let logs = db.getAccessLogs();
+    
+    if (drawingId) {
+      logs = db.getAccessLogsByDrawing(drawingId as string);
+    } else if (userId) {
+      logs = db.getAccessLogsByUser(userId as string);
+    } else if (linkId) {
+      logs = db.getAccessLogsByLink(linkId as string);
+    } else {
+      logs = logs.map(l => ({
+        ...l,
+        user: l.userId ? db.getUserById(l.userId) : undefined,
+        drawing: db.getDrawingById(l.drawingId),
+      }));
+    }
+    
+    res.json({
+      success: true,
+      data: logs.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()),
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: '获取访问日志失败',
+    });
+  }
+});
+
 router.get('/:token', async (req, res: Response) => {
   try {
     const { token } = req.params;
@@ -161,37 +192,6 @@ router.get('/:token', async (req, res: Response) => {
     res.status(500).json({
       success: false,
       error: '获取链接信息失败',
-    });
-  }
-});
-
-router.get('/audit/access-logs', authenticateToken, requireRole('admin'), async (req: AuthRequest, res: Response) => {
-  try {
-    const { drawingId, userId, linkId } = req.query;
-    let logs = db.getAccessLogs();
-    
-    if (drawingId) {
-      logs = db.getAccessLogsByDrawing(drawingId as string);
-    } else if (userId) {
-      logs = db.getAccessLogsByUser(userId as string);
-    } else if (linkId) {
-      logs = db.getAccessLogsByLink(linkId as string);
-    } else {
-      logs = logs.map(l => ({
-        ...l,
-        user: l.userId ? db.getUserById(l.userId) : undefined,
-        drawing: db.getDrawingById(l.drawingId),
-      }));
-    }
-    
-    res.json({
-      success: true,
-      data: logs.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()),
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      error: '获取访问日志失败',
     });
   }
 });
