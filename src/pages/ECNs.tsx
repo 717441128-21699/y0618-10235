@@ -209,7 +209,7 @@ const ECNs: React.FC = () => {
     {
       title: '创建人',
       key: 'createdBy',
-      render: (_: any, record: ECN) => record.createdBy?.name || '-',
+      render: (_: any, record: ECN) => record.createdByUser?.name || record.createdBy || '-',
     },
     {
       title: '操作',
@@ -337,7 +337,7 @@ const ECNs: React.FC = () => {
                   {statusText[currentECN.status]}
                 </Tag>
               </Descriptions.Item>
-              <Descriptions.Item label="创建人">{currentECN.createdBy?.name}</Descriptions.Item>
+              <Descriptions.Item label="创建人">{currentECN.createdByUser?.name || currentECN.createdBy || '用户'}</Descriptions.Item>
               <Descriptions.Item label="创建时间">{currentECN.createdAt}</Descriptions.Item>
               <Descriptions.Item label="变更说明">
                 {currentECN.description}
@@ -381,7 +381,7 @@ const ECNs: React.FC = () => {
                         <p className="font-medium text-sm">{notification.department?.name}</p>
                         <p className="text-xs text-slate-500">
                           {notification.acknowledgedBy
-                            ? `已确认：${notification.acknowledgedBy.name} · ${notification.acknowledgedAt}`
+                            ? `已确认：${notification.acknowledgedBy} · ${notification.acknowledgedAt}`
                             : '待确认'}
                         </p>
                       </div>

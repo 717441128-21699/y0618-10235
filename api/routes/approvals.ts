@@ -92,13 +92,18 @@ router.post('/', authenticateToken, requireRole('admin', 'project_manager'), asy
       id: `${approvalId}-step${index + 1}`,
       approvalId,
       stepNumber: index + 1,
+      order: index + 1,
       role: step.role,
-      reviewerId: step.reviewerId,
+      reviewerId: step.reviewerId || step.approverId,
+      approverId: step.approverId || step.reviewerId,
       status: 'pending' as const,
     }));
     
     approvalSteps.forEach(step => {
-      db.updateApprovalStep(step.id, step) || db.createApprovalStep?.(step);
+      const existing = db.updateApprovalStep(step.id, step);
+      if (!existing) {
+        db.createApprovalStep(step);
+      }
     });
     
     const approval = db.createApproval({
@@ -150,10 +155,11 @@ router.post('/:id/steps/:stepId/sign', authenticateToken, requireRole('admin', '
       });
     }
     
-    if (currentStep.reviewerId && currentStep.reviewerId !== req.user!.id) {
+    const stepApproverId = currentStep.approverId || currentStep.reviewerId;
+    if (stepApproverId && stepApproverId !== req.user!.id) {
       return res.status(403).json({
         success: false,
-        error: '无权限执行此审批',
+        error: '无权限执行此审批，该步骤指定了其他审批人',
       });
     }
     
@@ -171,19 +177,20 @@ router.post('/:id/steps/:stepId/sign', authenticateToken, requireRole('admin', '
       status: 'approved',
       comment,
       signature: signature || uuidv4(),
+      signedBy: req.user!.name || req.user!.username,
       signedAt: new Date().toISOString(),
     });
-    
+
     const nextStep = steps.find(s => s.stepNumber === currentStep.stepNumber + 1);
     const allApproved = steps.every(s => s.status === 'approved');
-    
+
     let updatedApproval;
     if (allApproved) {
       updatedApproval = db.updateApproval(id, {
         status: 'approved',
         currentStep: steps.length,
       });
-      db.updateDrawing(approval.drawingId, { status: 'approved' });
+      db.updateDrawing(approval.drawingId, { status: 'issued' });
     } else {
       updatedApproval = db.updateApproval(id, {
         status: 'reviewing',

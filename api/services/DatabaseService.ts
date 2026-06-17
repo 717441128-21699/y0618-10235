@@ -213,7 +213,7 @@ class DatabaseService {
         annotations: this.getAnnotationsByVersion(v.id),
       }));
   }
-  createVersion(data: Omit<DrawingVersion, 'id' | 'createdAt'>): DrawingVersion {
+  createVersion(data: Partial<DrawingVersion> & Omit<DrawingVersion, 'id' | 'createdAt'> & { id?: string }): DrawingVersion {
     return this.create(this.versions, {
       ...data,
       createdAt: new Date().toISOString(),
@@ -287,7 +287,7 @@ class DatabaseService {
   }
   getApprovalsByReviewer(reviewerId: string): Approval[] {
     return this.approvals.filter(a =>
-      a.steps.some(s => s.reviewerId === reviewerId)
+      a.steps.some(s => s.reviewerId === reviewerId || s.approverId === reviewerId)
     ).map(a => ({
       ...a,
       drawing: this.getDrawingById(a.drawingId),
@@ -296,7 +296,7 @@ class DatabaseService {
       steps: this.getApprovalStepsByApproval(a.id),
     }));
   }
-  createApproval(data: Omit<Approval, 'id' | 'createdAt'>): Approval {
+  createApproval(data: Partial<Approval> & Omit<Approval, 'id' | 'createdAt'> & { id?: string }): Approval {
     return this.create(this.approvals, {
       ...data,
       createdAt: new Date().toISOString(),
@@ -310,7 +310,9 @@ class DatabaseService {
       .sort((a, b) => a.stepNumber - b.stepNumber)
       .map(s => ({
         ...s,
+        order: s.order || s.stepNumber,
         reviewer: s.reviewerId ? this.getUserById(s.reviewerId) : undefined,
+        approver: s.approverId ? this.getUserById(s.approverId) : (s.reviewerId ? this.getUserById(s.reviewerId) : undefined),
       }));
   }
   updateApprovalStep(stepId: string, data: Partial<ApprovalStep>): ApprovalStep | undefined {
@@ -422,31 +424,56 @@ class DatabaseService {
     }
   }
 
-  getAccessLogs(): AccessLog[] { return this.accessLogs; }
   getAccessLogsByDrawing(drawingId: string): AccessLog[] {
-    return this.filterByField(this.accessLogs, 'drawingId', drawingId).map(l => ({
-      ...l,
-      user: l.userId ? this.getUserById(l.userId) : undefined,
-      drawing: this.getDrawingById(l.drawingId),
-    }));
+    return this.filterByField(this.accessLogs, 'drawingId', drawingId)
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      .map(l => ({
+        ...l,
+        accessedAt: l.accessedAt || l.createdAt,
+        externalViewer: l.externalViewer || (l.userId ? undefined : '外部访客'),
+        user: l.userId ? this.getUserById(l.userId) : undefined,
+        drawing: this.getDrawingById(l.drawingId),
+      }));
   }
   getAccessLogsByLink(linkId: string): AccessLog[] {
-    return this.filterByField(this.accessLogs, 'linkId', linkId).map(l => ({
-      ...l,
-      drawing: this.getDrawingById(l.drawingId),
-    }));
+    return this.filterByField(this.accessLogs, 'linkId', linkId)
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      .map(l => ({
+        ...l,
+        accessedAt: l.accessedAt || l.createdAt,
+        externalViewer: l.externalViewer || '外部访客',
+        user: l.userId ? this.getUserById(l.userId) : undefined,
+        drawing: this.getDrawingById(l.drawingId),
+      }));
   }
   getAccessLogsByUser(userId: string): AccessLog[] {
-    return this.filterByField(this.accessLogs, 'userId', userId).map(l => ({
-      ...l,
-      user: this.getUserById(l.userId),
-      drawing: this.getDrawingById(l.drawingId),
-    }));
+    return this.filterByField(this.accessLogs, 'userId', userId)
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      .map(l => ({
+        ...l,
+        accessedAt: l.accessedAt || l.createdAt,
+        user: this.getUserById(l.userId),
+        drawing: this.getDrawingById(l.drawingId),
+      }));
   }
-  createAccessLog(data: Omit<AccessLog, 'id' | 'createdAt'>): AccessLog {
+  getAccessLogs(): AccessLog[] {
+    return this.accessLogs
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      .map(l => ({
+        ...l,
+        accessedAt: l.accessedAt || l.createdAt,
+        externalViewer: l.externalViewer || (l.userId ? undefined : '外部访客'),
+        user: l.userId ? this.getUserById(l.userId) : undefined,
+        drawing: this.getDrawingById(l.drawingId),
+      }));
+  }
+  createAccessLog(data: Omit<AccessLog, 'id' | 'createdAt'> & { accessedAt?: string; externalViewer?: string }): AccessLog {
+    const now = new Date().toISOString();
     return this.create(this.accessLogs, {
       ...data,
-      createdAt: new Date().toISOString(),
+      createdAt: now,
+      accessedAt: data.accessedAt || now,
+      externalViewer: data.userId ? undefined : (data.externalViewer || '外部访客'),
     });
   }
 }

@@ -420,7 +420,7 @@ const DrawingPreview: React.FC = () => {
                         }`}
                       >
                         <CommentOutlined className="mr-1" />
-                        {annotation.author?.name}
+                        {annotation.author || annotation.createdByUser?.name || '用户'}
                       </div>
                     </div>
                   ))}
@@ -438,7 +438,7 @@ const DrawingPreview: React.FC = () => {
                     </div>
                     <div className="flex justify-between">
                       <span className="text-slate-500">创建人</span>
-                      <span className="font-medium">{currentVersion.createdBy?.name}</span>
+                      <span className="font-medium">{currentVersion.createdByUser?.name || currentVersion.createdBy || '用户'}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-slate-500">创建时间</span>
@@ -480,9 +480,9 @@ const DrawingPreview: React.FC = () => {
                           <div className="flex items-start justify-between mb-2">
                             <div className="flex items-center gap-2">
                               <Avatar size={24} className="bg-blue-500 text-xs">
-                                {annotation.author?.name?.charAt(0)}
+                                {(annotation.author || annotation.createdByUser?.name || 'U').charAt(0)}
                               </Avatar>
-                              <span className="text-sm font-medium">{annotation.author?.name}</span>
+                              <span className="text-sm font-medium">{annotation.author || annotation.createdByUser?.name || '用户'}</span>
                               <Tag
                                 color={annotation.status === 'resolved' ? 'green' : 'red'}
                                 className="ml-2"
@@ -492,12 +492,12 @@ const DrawingPreview: React.FC = () => {
                             </div>
                             <span className="text-xs text-slate-400">{annotation.createdAt}</span>
                           </div>
-                          <p className="text-sm text-slate-700 mb-2">{annotation.content}</p>
+                          <p className="text-sm text-slate-700 mb-2">{annotation.content || annotation.comment}</p>
                           {annotation.replies && annotation.replies.length > 0 && (
                             <div className="ml-6 space-y-2 mt-2 pt-2 border-t border-slate-100">
                               {annotation.replies.map((reply: AnnotationReply) => (
                                 <div key={reply.id} className="text-xs">
-                                  <span className="font-medium text-blue-600">{reply.author?.name}：</span>
+                                  <span className="font-medium text-blue-600">{reply.author || reply.createdByUser?.name || '用户'}：</span>
                                   <span className="text-slate-600">{reply.content}</span>
                                   <span className="text-slate-400 ml-2">{reply.createdAt}</span>
                                 </div>
@@ -589,8 +589,8 @@ const DrawingPreview: React.FC = () => {
       >
         {selectedAnnotation && (
           <div className="mb-4 p-3 bg-slate-50 rounded-lg">
-            <p className="text-sm font-medium">{selectedAnnotation.author?.name}：</p>
-            <p className="text-sm text-slate-600">{selectedAnnotation.content}</p>
+            <p className="text-sm font-medium">{selectedAnnotation.author || selectedAnnotation.createdByUser?.name || '用户'}：</p>
+            <p className="text-sm text-slate-600">{selectedAnnotation.content || selectedAnnotation.comment}</p>
           </div>
         )}
         <Form form={form} layout="vertical">

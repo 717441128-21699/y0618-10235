@@ -40,8 +40,8 @@ app.use('/api/projects', projectRoutes)
 app.use('/api/drawings', drawingRoutes)
 app.use('/api/approvals', approvalRoutes)
 app.use('/api/ecns', ecnRoutes)
-app.use('/api', externalRoutes)
 app.use('/api/users', userRoutes)
+app.use('/api', externalRoutes)
 
 /**
  * health

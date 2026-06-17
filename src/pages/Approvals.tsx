@@ -258,8 +258,7 @@ const Approvals: React.FC = () => {
         if (record.status === 'approved') return '全部完成';
         if (record.status === 'rejected') return '已驳回';
         const stepToShow = pendingStep || firstStep;
-        const approver = users?.find((u: User) => u.id === stepToShow?.approverId);
-        return approver?.name || '-';
+        return stepToShow?.approver?.name || stepToShow?.reviewer?.name || '负责人';
       },
     },
     {
@@ -275,7 +274,7 @@ const Approvals: React.FC = () => {
     {
       title: '创建人',
       key: 'createdBy',
-      render: (_: any, record: Approval) => record.createdBy?.name || '-',
+      render: (_: any, record: Approval) => record.createdByUser?.name || record.createdBy || '-',
     },
     {
       title: '操作',
@@ -401,7 +400,7 @@ const Approvals: React.FC = () => {
                   {statusText[currentApproval.status]}
                 </Tag>
               </Descriptions.Item>
-              <Descriptions.Item label="创建人">{currentApproval.createdBy?.name}</Descriptions.Item>
+              <Descriptions.Item label="创建人">{currentApproval.createdByUser?.name || currentApproval.createdBy || '用户'}</Descriptions.Item>
               <Descriptions.Item label="创建时间">{currentApproval.createdAt}</Descriptions.Item>
             </Descriptions>
 
@@ -412,14 +411,13 @@ const Approvals: React.FC = () => {
                 current={currentApproval.steps?.filter((s) => s.status !== 'pending').length || 0}
                 status={currentApproval.status === 'rejected' ? 'error' : 'process'}
                 items={currentApproval.steps?.map((step: ApprovalStep) => {
-                  const approver = users?.find((u: User) => u.id === step.approverId);
-                  const isMyTurn = step.status === 'pending' && user?.id === step.approverId;
+                  const isMyTurn = step.status === 'pending' && user?.id === (step.approverId || step.reviewerId);
                   const canSign = isMyTurn && currentApproval.status === 'pending' && 
                     currentApproval.steps?.every((s: ApprovalStep) => s.order >= step.order || s.status !== 'pending');
                   return {
                     title: (
                       <div className="flex items-center justify-between">
-                        <span className="font-medium">{approver?.name}</span>
+                        <span className="font-medium">{step.approver?.name || step.reviewer?.name || '负责人'}</span>
                         {canSign && (
                           <Space>
                             <Button
@@ -447,7 +445,7 @@ const Approvals: React.FC = () => {
                         <p className="text-xs text-slate-500">{stepStatusText[step.status]}</p>
                         {step.signedBy && (
                           <p className="text-xs text-slate-600 mt-1">
-                            签字人：{step.signedBy?.name} · {step.signedAt}
+                            签字人：{step.signedBy || step.approver?.name || step.reviewer?.name || ''} · {step.signedAt}
                           </p>
                         )}
                         {step.comment && (

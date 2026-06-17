@@ -13,7 +13,6 @@ import {
   Descriptions,
   List,
   Avatar,
-  Comment,
 } from 'antd';
 import { useQuery } from '@tanstack/react-query';
 import { useParams, useNavigate } from 'react-router-dom';
@@ -245,7 +244,7 @@ const ExternalViewer: React.FC = () => {
                         }`}
                       >
                         <CommentOutlined className="mr-1" />
-                        {annotation.author?.name}
+                        {annotation.author || annotation.createdByUser?.name || '用户'}
                       </div>
                     </div>
                   ))}
@@ -259,9 +258,9 @@ const ExternalViewer: React.FC = () => {
                   <Card size="small" className="border-none bg-slate-50">
                     <Descriptions column={1} size="small">
                       <Descriptions.Item label="版本">{version.version}</Descriptions.Item>
-                      <Descriptions.Item label="创建人">{version.createdBy?.name}</Descriptions.Item>
+                      <Descriptions.Item label="创建人">{version.createdByUser?.name || version.createdBy || '用户'}</Descriptions.Item>
                       <Descriptions.Item label="创建时间">{version.createdAt}</Descriptions.Item>
-                      <Descriptions.Item label="文件格式">{version.fileFormat?.toUpperCase()}</Descriptions.Item>
+                      <Descriptions.Item label="文件格式">{(version.fileFormat || version.fileType)?.toUpperCase()}</Descriptions.Item>
                     </Descriptions>
                     <div className="mt-3 pt-3 border-t border-slate-200">
                       <p className="text-xs text-slate-500 mb-2">变更说明：</p>
@@ -290,9 +289,9 @@ const ExternalViewer: React.FC = () => {
                           <div className="flex items-start justify-between mb-2">
                             <div className="flex items-center gap-2">
                               <Avatar size={20} className="bg-blue-500 text-xs">
-                                {annotation.author?.name?.charAt(0)}
+                                {(annotation.author || annotation.createdByUser?.name || '用户').charAt(0)}
                               </Avatar>
-                              <span className="text-xs font-medium">{annotation.author?.name}</span>
+                              <span className="text-xs font-medium">{annotation.author || annotation.createdByUser?.name || '用户'}</span>
                               <Tag
                                 color={annotation.status === 'resolved' ? 'green' : 'red'}
                                 className="ml-1"
@@ -302,16 +301,21 @@ const ExternalViewer: React.FC = () => {
                               </Tag>
                             </div>
                           </div>
-                          <p className="text-xs text-slate-600 mb-2">{annotation.content}</p>
+                          <p className="text-xs text-slate-600 mb-2">{annotation.content || annotation.comment}</p>
                           {annotation.replies && annotation.replies.length > 0 && (
                             <div className="ml-4 space-y-2 mt-2 pt-2 border-t border-slate-100">
                               {annotation.replies.map((reply: AnnotationReply) => (
-                                <Comment
-                                  key={reply.id}
-                                  author={<span className="text-xs font-medium text-blue-600">{reply.author?.name}</span>}
-                                  content={<p className="text-xs text-slate-600">{reply.content}</p>}
-                                  datetime={<span className="text-xs text-slate-400">{reply.createdAt}</span>}
-                                />
+                                <div key={reply.id} className="bg-slate-50 rounded p-2">
+                                  <div className="flex items-center justify-between mb-1">
+                                    <span className="text-xs font-medium text-blue-600">
+                                      {reply.author || reply.createdByUser?.name || reply.createdBy || '用户'}
+                                    </span>
+                                    <span className="text-xs text-slate-400">
+                                      {reply.createdAt}
+                                    </span>
+                                  </div>
+                                  <p className="text-xs text-slate-600 m-0">{reply.content}</p>
+                                </div>
                               ))}
                             </div>
                           )}

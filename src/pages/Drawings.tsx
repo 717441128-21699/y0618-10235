@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Card, Table, Button, Tag, Modal, Form, Input, Select, message, Space, Popconfirm, Upload, InputNumber } from 'antd';
+import { Card, Table, Button, Tag, Modal, Form, Input, Select, message, Space, Popconfirm, Upload, InputNumber, Row, Col } from 'antd';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { PlusOutlined, EditOutlined, DeleteOutlined, EyeOutlined, UploadOutlined, HistoryOutlined, FileTextOutlined } from '@ant-design/icons';
 import { motion } from 'framer-motion';
@@ -29,7 +29,7 @@ const Drawings: React.FC = () => {
     queryKey: ['projects'],
     queryFn: async () => {
       const res = await projectApi.getProjects();
-      return res.data.data?.data || [];
+      return res.data.data?.items || [];
     },
   });
 
@@ -215,7 +215,7 @@ const Drawings: React.FC = () => {
     {
       title: '创建人',
       key: 'createdBy',
-      render: (_: any, record: Drawing) => record.createdBy?.name || '-',
+      render: (_: any, record: Drawing) => record.createdByUser?.name || record.createdBy || '-',
     },
     {
       title: '操作',

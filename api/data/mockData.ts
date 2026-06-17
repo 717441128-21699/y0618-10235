@@ -315,36 +315,48 @@ approvalTitles.forEach((title, idx) => {
       id: `${approvalId}-step1`,
       approvalId,
       stepNumber: 1,
+      order: 1,
       role: '机械专业负责人',
       reviewerId: 'reviewer01',
+      approverId: 'reviewer01',
       reviewer: mockUsers.find(u => u.id === 'reviewer01'),
+      approver: mockUsers.find(u => u.id === 'reviewer01'),
       status: status === 'rejected' ? 'rejected' : (idx > 0 ? 'approved' : 'pending'),
       comment: status === 'rejected' ? '设计方案存在安全隐患，请重新设计' : (idx > 0 ? '图纸设计合理，同意通过' : undefined),
       signature: idx > 0 && status !== 'rejected' ? 'reviewer01_signature' : undefined,
+      signedBy: idx > 0 && status !== 'rejected' ? mockUsers.find(u => u.id === 'reviewer01')?.name : undefined,
       signedAt: idx > 0 && status !== 'rejected' ? hoursAgo(idx * 48 + 24) : undefined,
     },
     {
       id: `${approvalId}-step2`,
       approvalId,
       stepNumber: 2,
+      order: 2,
       role: '电气专业负责人',
       reviewerId: 'reviewer02',
+      approverId: 'reviewer02',
       reviewer: mockUsers.find(u => u.id === 'reviewer02'),
+      approver: mockUsers.find(u => u.id === 'reviewer02'),
       status: status === 'rejected' ? 'pending' : (idx > 1 ? 'approved' : 'pending'),
       comment: idx > 1 && status !== 'rejected' ? '电气参数正确，符合规范' : undefined,
       signature: idx > 1 && status !== 'rejected' ? 'reviewer02_signature' : undefined,
+      signedBy: idx > 1 && status !== 'rejected' ? mockUsers.find(u => u.id === 'reviewer02')?.name : undefined,
       signedAt: idx > 1 && status !== 'rejected' ? hoursAgo(idx * 24 + 12) : undefined,
     },
     {
       id: `${approvalId}-step3`,
       approvalId,
       stepNumber: 3,
+      order: 3,
       role: '建筑专业负责人',
       reviewerId: 'reviewer01',
+      approverId: 'reviewer01',
       reviewer: mockUsers.find(u => u.id === 'reviewer01'),
+      approver: mockUsers.find(u => u.id === 'reviewer01'),
       status: status === 'approved' && idx > 2 ? 'approved' : 'pending',
       comment: idx > 2 && status === 'approved' ? '结构设计合理，同意会签' : undefined,
       signature: idx > 2 && status === 'approved' ? 'reviewer01_signature' : undefined,
+      signedBy: idx > 2 && status === 'approved' ? mockUsers.find(u => u.id === 'reviewer01')?.name : undefined,
       signedAt: idx > 2 && status === 'approved' ? hoursAgo(idx * 12) : undefined,
     },
   ];
@@ -463,15 +475,18 @@ linkData.forEach((link, idx) => {
   const accessLogs: AccessLog[] = [];
   const accessCount = Math.floor(Math.random() * 5) + 1;
   for (let l = 0; l < accessCount; l++) {
+    const accessedAt = hoursAgo(l * 6 + idx * 12);
     const log: AccessLog = {
       id: `log-${linkId}-${l}`,
       linkId,
       drawingId: drawing.id,
       drawing,
       action: 'view',
+      externalViewer: ['施工单位-张工', '供应商-李经理', '合作方-王总'][l % 3],
       ipAddress: `192.168.${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}`,
-      userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-      createdAt: hoursAgo(l * 6 + idx * 12),
+      userAgent: ['Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (Chrome/120.0)', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 14_2) AppleWebKit/605.1.15 (Safari)', 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_2 like Mac OS X) AppleWebKit/605.1.15'][l % 3],
+      accessedAt,
+      createdAt: accessedAt,
     };
     accessLogs.push(log);
     mockAccessLogs.push(log);
@@ -497,6 +512,7 @@ linkData.forEach((link, idx) => {
 for (let i = 0; i < 20; i++) {
   const drawing = mockDrawings[i % mockDrawings.length];
   const user = mockUsers[i % mockUsers.length];
+  const accessedAt = hoursAgo(i * 3 + 1);
   mockAccessLogs.push({
     id: `log-internal-${i}`,
     userId: user.id,
@@ -505,7 +521,8 @@ for (let i = 0; i < 20; i++) {
     drawing,
     action: ['view', 'download', 'preview', 'comment'][i % 4],
     ipAddress: `10.0.${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}`,
-    userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-    createdAt: hoursAgo(i * 3 + 1),
+    userAgent: ['Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 14_2) Safari', 'Mozilla/5.0 (X11; Linux x86_64) Firefox/121.0'][i % 3],
+    accessedAt,
+    createdAt: accessedAt,
   });
 }

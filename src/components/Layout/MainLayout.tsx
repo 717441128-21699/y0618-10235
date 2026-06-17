@@ -143,16 +143,8 @@ const MainLayout: React.FC = () => {
           selectedKeys={[location.pathname]}
           items={menuItems}
           onClick={handleMenuClick}
-          className="bg-transparent border-none mt-4"
-          styles={{
-            item: {
-              borderRadius: '8px',
-              margin: '4px 12px',
-            },
-            itemSelected: {
-              background: 'rgba(255,255,255,0.15) !important',
-            },
-          }}
+          className="bg-transparent border-none mt-4 menu-custom"
+          style={{ padding: '0 8px' }}
         />
       </Sider>
 

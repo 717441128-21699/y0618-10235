@@ -1,7 +1,7 @@
 export type Role = 'admin' | 'project_manager' | 'designer' | 'reviewer' | 'viewer' | 'external';
 
 export type ProjectStatus = 'active' | 'completed' | 'archived';
-export type DrawingStatus = 'draft' | 'reviewing' | 'approved' | 'released';
+export type DrawingStatus = 'draft' | 'pending_review' | 'reviewing' | 'in_approval' | 'approved' | 'rejected' | 'issued' | 'released';
 export type ApprovalStatus = 'pending' | 'reviewing' | 'approved' | 'rejected';
 export type ECNStatus = 'draft' | 'issued' | 'acknowledged';
 export type AnnotationStatus = 'open' | 'resolved' | 'closed';
@@ -75,6 +75,7 @@ export interface DrawingVersion {
   filePath: string;
   fileName: string;
   fileType: FileType;
+  fileFormat?: string;
   fileSize: number;
   changeDescription: string;
   changeType: ChangeType;
@@ -95,8 +96,10 @@ export interface Annotation {
   radius?: number;
   color: string;
   comment: string;
+  content?: string;
   status: AnnotationStatus;
   createdBy: string;
+  author?: string;
   createdByUser?: User;
   createdAt: string;
   replies: AnnotationReply[];
@@ -107,6 +110,7 @@ export interface AnnotationReply {
   annotationId: string;
   content: string;
   createdBy: string;
+  author?: string;
   createdByUser?: User;
   createdAt: string;
 }
@@ -203,11 +207,13 @@ export interface AccessLog {
   linkId?: string;
   userId?: string;
   user?: User;
+  externalViewer?: string;
   drawingId: string;
   drawing?: Drawing;
   action: string;
   ipAddress?: string;
   userAgent?: string;
+  accessedAt?: string;
   createdAt: string;
 }
 

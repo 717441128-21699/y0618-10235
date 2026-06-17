@@ -107,7 +107,7 @@ const DrawingVersions: React.FC = () => {
                           </div>
                           <div className="flex items-center gap-4 text-xs text-slate-500 mt-1">
                             <span className="flex items-center gap-1">
-                              <UserOutlined /> {version.createdBy?.name}
+                              <UserOutlined /> {version.createdByUser?.name || version.createdBy || '用户'}
                             </span>
                             <span className="flex items-center gap-1">
                               <ClockCircleOutlined /> {version.createdAt}
@@ -134,7 +134,7 @@ const DrawingVersions: React.FC = () => {
                     <div className="flex items-center gap-4 mt-3 pt-3 border-t border-slate-100">
                       <div className="text-xs">
                         <span className="text-slate-500">文件格式：</span>
-                        <span className="text-slate-700 font-medium">{version.fileFormat?.toUpperCase()}</span>
+                        <span className="text-slate-700 font-medium">{(version.fileFormat || version.fileType)?.toUpperCase()}</span>
                       </div>
                       <div className="text-xs">
                         <span className="text-slate-500">文件大小：</span>

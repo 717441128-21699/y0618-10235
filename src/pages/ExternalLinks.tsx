@@ -15,7 +15,6 @@ import {
   InputNumber,
   DatePicker,
   Tooltip,
-  CopyToClipboard,
   List,
 } from 'antd';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';

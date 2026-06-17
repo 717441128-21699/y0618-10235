@@ -16,7 +16,7 @@ const Projects: React.FC = () => {
     queryKey: ['projects'],
     queryFn: async () => {
       const res = await projectApi.getProjects();
-      return res.data.data?.data || [];
+      return res.data.data?.items || [];
     },
   });
 
